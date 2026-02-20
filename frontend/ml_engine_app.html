@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML Engine — Data Science API</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #7cffd4;
+    --accent2: #a855f7;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --text: #e8e8f0;
+    --muted: #6b6b85;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,255,212,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,255,212,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb { position: fixed; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%); top: -200px; right: -200px; pointer-events: none; z-index: 0; }
+  .glow-orb2 { position: fixed; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(124,255,212,0.06) 0%, transparent 70%); bottom: -100px; left: -100px; pointer-events: none; z-index: 0; }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  header { padding: 48px 0 40px; border-bottom: 1px solid var(--border); }
+  .header-inner { display: flex; align-items: center; gap: 20px; }
+  .logo-badge { width: 52px; height: 52px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+  .header-text h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+  .header-text h1 span { color: var(--accent); }
+  .header-text p { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .status-dot { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.online { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .base-url-bar { margin: 28px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+  .base-url-bar label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; }
+  .base-url-bar input { flex: 1; background: transparent; border: none; outline: none; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 14px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; }
+  .tab { flex: 1; padding: 10px 16px; border-radius: 8px; border: none; background: transparent; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .tab.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .method-badge { font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+  .post { background: rgba(168,85,247,0.2); color: var(--accent2); }
+  .get { background: rgba(124,255,212,0.15); color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .section-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; padding-left: 2px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .form-group input, .form-group select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--surface2); }
+  .file-drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; margin-bottom: 16px; }
+  .file-drop:hover, .file-drop.dragover { border-color: var(--accent); background: rgba(124,255,212,0.03); }
+  .file-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .file-drop-icon { font-size: 32px; margin-bottom: 8px; }
+  .file-drop p { font-size: 13px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .file-drop p strong { color: var(--accent); }
+  .file-name { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--accent); margin-top: 8px; display: none; }
+  .btn { padding: 12px 24px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: var(--accent); color: #0a0a0f; width: 100%; justify-content: center; }
+  .btn-primary:hover { background: #5eefc0; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,255,212,0.2); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); width: 100%; justify-content: center; }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .response-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; font-family: 'DM Mono', monospace; font-size: 13px; line-height: 1.6; min-height: 80px; white-space: pre-wrap; word-break: break-all; position: relative; }
+  .response-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .status-badge { font-size: 11px; font-family: 'DM Mono', monospace; padding: 3px 8px; border-radius: 4px; }
+  .status-200 { background: rgba(124,255,212,0.15); color: var(--accent); }
+  .status-4xx, .status-5xx { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .status-empty { background: var(--surface2); color: var(--muted); }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(124,255,212,0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .plot-img { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); display: none; margin-top: 16px; }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+  .feature-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; font-size: 13px; }
+  .feature-chip .icon { font-size: 20px; margin-bottom: 6px; }
+  .feature-chip .name { font-weight: 600; font-size: 13px; }
+  .feature-chip .desc { color: var(--muted); font-size: 11px; font-family: 'DM Mono', monospace; margin-top: 3px; }
+  .info-block { background: rgba(124,255,212,0.05); border: 1px solid rgba(124,255,212,0.15); border-radius: 8px; padding: 12px 16px; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--accent); margin-bottom: 16px; }
+  #predict-values-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .value-input-wrap { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+  .value-input-wrap label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .value-input-wrap input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .value-input-wrap input:focus { border-color: var(--accent); }
+  .add-field-btn { background: transparent; border: 1px dashed var(--border); border-radius: 8px; padding: 8px 14px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.2s; align-self: flex-end; margin-bottom: 16px; }
+  .add-field-btn:hover { border-color: var(--accent); color: var(--accent); }
+  footer { padding: 32px 0; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; margin-top: 40px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="glow-orb"></div>
+<div class="glow-orb2"></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="logo-badge">🧠</div>
+      <div class="header-text">
+        <h1>ML <span>Engine</span></h1>
+        <p>Data Science API — FastAPI powered ML engine</p>
+      </div>
+      <div class="status-dot">
+        <span class="dot" id="conn-dot"></span>
+        <span id="conn-label">unchecked</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Base URL -->
+  <div class="base-url-bar" style="margin-top:28px">
+    <label>BASE URL</label>
+    <input type="text" id="base-url" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000">
+    <button type="button" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:12px" id="ping-btn">Ping</button>
+  </div>
+
+  <!-- Features overview -->
+  <div class="features-grid">
+    <div class="feature-chip">
+      <div class="icon">📈</div>
+      <div class="name">Linear Regression</div>
+      <div class="desc">Normal Equation + pseudo-inverse</div>
+    </div>
+    <div class="feature-chip">
+      <div class="icon">🎯</div>
+      <div class="name">KNN</div>
+      <div class="desc">Classification & Regression</div>
+    </div>
+    <div class="feature-chip">
+      <div class="icon">🔧</div>
+      <div class="name">Auto Preprocessing</div>
+      <div class="desc">Cleaning + MinMax scaling</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button type="button" class="tab active" data-tab="train">
+      <span class="method-badge post">POST</span> /train
+    </button>
+    <button type="button" class="tab" data-tab="predict">
+      <span class="method-badge post">POST</span> /predict
+    </button>
+    <button type="button" class="tab" data-tab="plot">
+      <span class="method-badge get">GET</span> /plot
+    </button>
+  </div>
+
+  <!-- TRAIN Panel -->
+  <div class="panel active" id="train-panel">
+    <div class="card">
+      <div class="section-label">Upload Dataset</div>
+      <div class="file-drop" id="train-file-drop">
+        <div class="file-drop-icon">📁</div>
+        <p>Drag & drop your CSV here, or <strong>browse</strong></p>
+        <input type="file" id="train-file-input" accept=".csv">
+      </div>
+      <div class="file-name" id="train-file-name"></div>
+
+      <!-- FIX: 3-column row — model, problem_type, target -->
+      <div class="form-row-3">
+        <div class="form-group">
+          <label for="model-select">Model</label>
+          <!-- FIX: values must match ModelFactory keys: "linear_regression" | "knn" -->
+          <select id="model-select">
+            <option value="linear_regression">Linear Regression</option>
+            <option value="knn">KNN</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <!-- FIX: added problem_type field required by /train endpoint -->
+          <label for="problem-type">Problem Type</label>
+          <select id="problem-type">
+            <option value="regression">Regression</option>
+            <option value="classification">Classification</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="target-feature">Target Feature</label>
+          <input type="text" id="target-feature" placeholder="e.g. price, label">
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="train-btn">
+        <span id="train-btn-content">⚡ Train Model</span>
+      </button>
+    </div>
+
+    <div class="response-box" id="train-response">
+      <div class="response-header">
+        <span>Response</span>
+        <span class="status-badge status-empty" id="train-status">...</span>
+      </div>
+      <div id="train-response-content" style="color:var(--muted)">Awaiting request...</div>
+    </div>
+  </div>
+
+  <!-- PREDICT Panel -->
+  <div class="panel" id="predict-panel">
+    <div class="card">
+      <div class="section-label">Feature Values</div>
+      <div class="info-block">
+        ℹ️ <strong>Note:</strong> Enter numeric feature values in the same order as your training columns (excluding target). Train a model first.
+      </div>
+      <div id="predict-values-container">
+        <!-- Default: one field to start -->
+        <div class="value-input-wrap">
+          <label>feature_0</label>
+          <input type="number" step="any" placeholder="0.0">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button type="button" class="add-field-btn" id="add-field-btn">+ Add Feature</button>
+        <button type="button" class="add-field-btn" id="remove-field-btn">− Remove</button>
+      </div>
+      <button type="button" class="btn btn-primary" id="predict-btn">🔮 Predict</button>
+    </div>
+    <div class="response-box" id="predict-response">
+      <div class="response-header">
+        <span>Response</span>
+        <span class="status-badge status-empty" id="predict-status">...</span>
+      </div>
+      <div id="predict-response-content" style="color:var(--muted)">Awaiting request...</div>
+    </div>
+  </div>
+
+  <!-- PLOT Panel -->
+  <div class="panel" id="plot-panel">
+    <div class="card">
+      <div class="section-label">Prediction Plot</div>
+      <div class="info-block">
+        ℹ️ <strong>Note:</strong> The plot is generated after training. Click below to fetch the latest result.
+      </div>
+      <button type="button" class="btn btn-primary" id="plot-btn">📊 Fetch Plot</button>
+      <!-- FIX: image is shown by fetching /plot as a blob URL -->
+      <img id="plot-img" class="plot-img" src="" alt="Actual vs Predicted Plot">
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container">ML Engine UI · FastAPI + NumPy backend · No external ML libraries</div>
+</footer>
+
+<script>
+  // ── Tab switching ─────────────────────────────────────────────────
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab + "-panel").classList.add("active");
+    });
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────────
+  const baseUrl = () => document.getElementById("base-url").value.replace(/\/$/, "");
+
+  // ── File Drop (Train) ─────────────────────────────────────────────
+  const trainFileInput = document.getElementById("train-file-input");
+  const trainFileDrop  = document.getElementById("train-file-drop");
+  const trainFileName  = document.getElementById("train-file-name");
+
+  trainFileDrop.addEventListener("dragover", e => { e.preventDefault(); trainFileDrop.classList.add("dragover"); });
+  trainFileDrop.addEventListener("dragleave", () => trainFileDrop.classList.remove("dragover"));
+  trainFileDrop.addEventListener("drop", e => {
+    e.preventDefault();
+    trainFileDrop.classList.remove("dragover");
+    trainFileInput.files = e.dataTransfer.files;
+    showFileName();
+  });
+  trainFileInput.addEventListener("change", showFileName);
+  function showFileName() {
+    if (trainFileInput.files.length) {
+      trainFileName.style.display = "block";
+      trainFileName.textContent = "📄 " + trainFileInput.files[0].name;
+    }
+  }
+
+  // ── Train ─────────────────────────────────────────────────────────
+  const trainBtn            = document.getElementById("train-btn");
+  const trainBtnContent     = document.getElementById("train-btn-content");
+  const trainResponseEl     = document.getElementById("train-response-content");
+  const trainStatusEl       = document.getElementById("train-status");
+
+  trainBtn.addEventListener("click", async () => {
+    if (!trainFileInput.files.length) return alert("Please select a CSV file.");
+
+    const model       = document.getElementById("model-select").value;      // "linear_regression" | "knn"
+    const problemType = document.getElementById("problem-type").value;       // "regression" | "classification"
+    const target      = document.getElementById("target-feature").value.trim();
+
+    if (!target) return alert("Please enter the target feature column name.");
+
+    trainBtn.disabled = true;
+    trainBtnContent.innerHTML = '<span class="spinner"></span> Training...';
+    trainResponseEl.textContent = "";
+    trainStatusEl.textContent = "...";
+    trainStatusEl.className = "status-badge status-empty";
+
+    const formData = new FormData();
+    formData.append("file", trainFileInput.files[0]);
+    formData.append("model", model);
+    formData.append("problem_type", problemType);   // FIX: was missing from original HTML
+    formData.append("target", target);
+
+    try {
+      const res  = await fetch(baseUrl() + "/train", { method: "POST", body: formData });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      trainResponseEl.textContent = JSON.stringify(data, null, 2);
+      trainStatusEl.textContent   = res.status;
+      trainStatusEl.className     = "status-badge " + (res.ok ? "status-200" : "status-5xx");
+    } catch (err) {
+      trainResponseEl.textContent = "Network error: " + err.message;
+      trainStatusEl.textContent   = "Error";
+      trainStatusEl.className     = "status-badge status-5xx";
+    } finally {
+      trainBtn.disabled = false;
+      trainBtnContent.textContent = "⚡ Train Model";
+    }
+  });
+
+  // ── Ping ──────────────────────────────────────────────────────────
+  document.getElementById("ping-btn").addEventListener("click", async () => {
+    const connLabel = document.getElementById("conn-label");
+    const connDot   = document.getElementById("conn-dot");
+    connLabel.textContent = "pinging...";
+    try {
+      const res = await fetch(baseUrl() + "/ping");
+      if (res.ok) {
+        connDot.className   = "dot online";
+        connLabel.textContent = "online";
+      } else throw new Error();
+    } catch {
+      connDot.className   = "dot";
+      connLabel.textContent = "offline";
+    }
+  });
+
+  // ── Predict — dynamic feature fields ─────────────────────────────
+  const predictContainer = document.getElementById("predict-values-container");
+
+  function featureCount() { return predictContainer.querySelectorAll(".value-input-wrap").length; }
+
+  function addField() {
+    const idx  = featureCount();
+    const wrap = document.createElement("div");
+    wrap.className = "value-input-wrap";
+    wrap.innerHTML = `<label>feature_${idx}</label><input type="number" step="any" placeholder="0.0">`;
+    predictContainer.appendChild(wrap);
+  }
+
+  function removeField() {
+    const fields = predictContainer.querySelectorAll(".value-input-wrap");
+    if (fields.length > 1) fields[fields.length - 1].remove();
+    // Re-label remaining fields
+    predictContainer.querySelectorAll(".value-input-wrap").forEach((w, i) => {
+      w.querySelector("label").textContent = "feature_" + i;
+    });
+  }
+
+  document.getElementById("add-field-btn").addEventListener("click", addField);
+  document.getElementById("remove-field-btn").addEventListener("click", removeField);
+
+  // ── Predict request ───────────────────────────────────────────────
+  const predictBtn            = document.getElementById("predict-btn");
+  const predictResponseEl     = document.getElementById("predict-response-content");
+  const predictStatusEl       = document.getElementById("predict-status");
+
+  predictBtn.addEventListener("click", async () => {
+    const inputs   = [...predictContainer.querySelectorAll("input")];
+    const features = inputs.map(i => parseFloat(i.value));
+
+    if (features.some(isNaN)) return alert("All feature values must be valid numbers.");
+
+    predictBtn.disabled = true;
+    predictBtn.innerHTML = '<span class="spinner"></span> Predicting...';
+    predictResponseEl.textContent = "";
+    predictStatusEl.textContent   = "...";
+    predictStatusEl.className     = "status-badge status-empty";
+
+    try {
+      // FIX: /predict expects JSON body { "features": [...] } via FeatureInput Pydantic model
+      const res  = await fetch(baseUrl() + "/predict", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ features })
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      predictResponseEl.textContent = JSON.stringify(data, null, 2);
+      predictStatusEl.textContent   = res.status;
+      predictStatusEl.className     = "status-badge " + (res.ok ? "status-200" : "status-5xx");
+    } catch (err) {
+      predictResponseEl.textContent = "Network error: " + err.message;
+      predictStatusEl.textContent   = "Error";
+      predictStatusEl.className     = "status-badge status-5xx";
+    } finally {
+      predictBtn.disabled = false;
+      predictBtn.textContent = "🔮 Predict";
+    }
+  });
+
+  // ── Plot ──────────────────────────────────────────────────────────
+  const plotBtn = document.getElementById("plot-btn");
+  const plotImg = document.getElementById("plot-img");
+
+  plotBtn.addEventListener("click", async () => {
+    plotBtn.disabled = true;
+    plotBtn.innerHTML = '<span class="spinner"></span> Fetching...';
+    plotImg.style.display = "none";
+
+    try {
+      // FIX: /plot returns a FileResponse (image), so use blob() not json()
+      const res  = await fetch(baseUrl() + "/plot");
+      if (!res.ok) throw new Error("Server returned " + res.status);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      plotImg.src           = url;
+      plotImg.style.display = "block";
+    } catch (err) {
+      alert("Could not load plot: " + err.message);
+    } finally {
+      plotBtn.disabled = false;
+      plotBtn.textContent = "📊 Fetch Plot";
+    }
+  });
+</script>
+
+</body>
+</html>

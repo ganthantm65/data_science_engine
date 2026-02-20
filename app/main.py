@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware as CORS
 import pandas as pd
 import os
 import shutil
@@ -11,6 +12,13 @@ from app.ds_engine import DSEngine
 app = FastAPI()
 app.state.engine = None
 
+app.add_middleware(
+    CORS,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
 
 @app.post("/train")
 async def train(

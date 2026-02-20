@@ -5,9 +5,13 @@ from typing import List
 from fastapi.middleware.cors import CORSMiddleware as CORS
 import pandas as pd
 import os
+import uvicorn
 import shutil
 
 from app.ds_engine import DSEngine
+
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("plots", exist_ok=True)
 
 app = FastAPI()
 app.state.engine = None
@@ -48,8 +52,10 @@ async def train(
 
 @app.get("/plot")
 def get_plot():
-    return FileResponse("plots/result.png")
-
+    plot_path = "plots/result.png"
+    if not os.path.exists(plot_path):
+        return {"error": "Plot not found. Train model first."}
+    return FileResponse(plot_path)
 
 class FeatureInput(BaseModel):
     features: List[float]
@@ -63,3 +69,8 @@ async def predict(data: FeatureInput):
     prediction = app.state.engine.predict(data.features)
 
     return {"prediction": prediction}
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)

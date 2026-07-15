@@ -56,6 +56,7 @@ async def train(
     try:
         try:
             df = pd.read_csv(filepath, encoding="utf-8")
+            print(df.columns.tolist())
         except UnicodeDecodeError:
             try:
                 df = pd.read_csv(filepath, encoding="utf-8-sig")

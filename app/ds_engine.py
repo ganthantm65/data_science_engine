@@ -3,36 +3,73 @@ from .model_factory import ModelFactory
 from .evaluator import Evaluator
 from .visualizer import Visualizer
 import numpy as np
+import pandas as pd
 
 
 class DSEngine:
 
     def __init__(self, model_name, problem_type):
-
         self.problem_type = problem_type
         self.preprocessor = Preprocessor()
         self.model = ModelFactory.create(model_name, problem_type)
 
     def train(self, df, target):
 
-        df = self.preprocessor.clean(df)
+        # Remove spaces from column names
+        df.columns = df.columns.str.strip()
+        target = target.strip()
 
-        X = df.drop(columns=[target]).values
-        y = df[target].values
+        if target not in df.columns:
+            raise ValueError(
+                f"Target column '{target}' not found.\nAvailable columns: {df.columns.tolist()}"
+            )
 
+        # Save target separately
+        y = df[target]
+
+        # Remove target from features
+        X = df.drop(columns=[target])
+
+        # Preprocess features
+        X = self.preprocessor.clean(X)
+
+        # Convert target to numeric
+        y = pd.to_numeric(y, errors="raise")
+
+        # Convert to numpy
+        X = X.values
+        y = y.values
+
+        # Scale features
         X = self.preprocessor.scale(X)
 
+        # Train-test split
         split = int(0.8 * len(X))
-        X_train, X_test = X[:split], X[split:]
-        y_train, y_test = y[:split], y[split:]
 
+        X_train = X[:split]
+        X_test = X[split:]
+
+        y_train = y[:split]
+        y_test = y[split:]
+
+        # Train model
         self.model.fit(X_train, y_train)
 
+        # Predict
         predictions = self.model.predict(X_test)
 
-        metrics = Evaluator.evaluate(y_test, predictions, self.problem_type)
+        # Evaluate
+        metrics = Evaluator.evaluate(
+            y_test,
+            predictions,
+            self.problem_type
+        )
 
-        plot_path = Visualizer.plot_predictions(y_test, predictions)
+        # Plot
+        plot_path = Visualizer.plot_predictions(
+            y_test,
+            predictions
+        )
 
         return metrics, plot_path
 
@@ -41,4 +78,6 @@ class DSEngine:
         input_array = np.array(input_features).reshape(1, -1)
         input_scaled = self.preprocessor.transform(input_array)
 
-        return self.model.predict(input_scaled).tolist()
+        prediction = self.model.predict(input_scaled)
+
+        return prediction.tolist()

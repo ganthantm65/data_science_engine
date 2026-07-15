@@ -10,6 +10,8 @@ import shutil
 
 from app.ds_engine import DSEngine
 
+MAX_FILE_SIZE = 100 * 1024 * 1024 
+
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("plots", exist_ok=True)
 
@@ -29,26 +31,50 @@ async def train(
     file: UploadFile = File(...),
     model: str = Form(...),
     target: str = Form(...),
-    problem_type: str = Form(...)          # added
+    problem_type: str = Form(...)
 ):
     os.makedirs("uploads", exist_ok=True)
-    filepath = f"uploads/{file.filename}"
+
+    filepath = os.path.join("uploads", file.filename)
+
+    size = 0
 
     with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        while chunk := file.file.read(1024 * 1024):  # 1 MB chunks
+            size += len(chunk)
 
-    df = pd.read_csv(filepath)
+            if size > MAX_FILE_SIZE:
+                buffer.close()
+                os.remove(filepath)
+                raise HTTPException(
+                    status_code=413,
+                    detail="Maximum upload size is 100 MB."
+                )
 
-    engine = DSEngine(model, problem_type)   # ✅ now correct
-    metrics, plot_path = engine.train(df, target)
+            buffer.write(chunk)
 
-    app.state.engine = engine
+    try:
+        try:
+            df = pd.read_csv(filepath, encoding="utf-8")
+        except UnicodeDecodeError:
+            try:
+                df = pd.read_csv(filepath, encoding="utf-8-sig")
+            except UnicodeDecodeError:
+                df = pd.read_csv(filepath, encoding="latin1")
 
-    return {
-        "message": "Model trained successfully",
-        "metrics": metrics,
-        "plot_image_endpoint": "/plot"
-    }
+        engine = DSEngine(model, problem_type)
+        metrics, plot_path = engine.train(df, target)
+
+        app.state.engine = engine
+
+        return {
+            "message": "Model trained successfully",
+            "metrics": metrics,
+            "plot_image_endpoint": "/plot"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/plot")
 def get_plot():

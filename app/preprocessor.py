@@ -5,22 +5,26 @@ class Preprocessor:
     def __init__(self):
         self.min = None
         self.max = None
-        self.numeric_columns = None
 
     def clean(self, df):
 
-        # Fill missing numeric values
-        numeric = df.select_dtypes(include=["number"])
+        # Numeric columns
+        numeric = df.select_dtypes(include=["number"]).copy()
         numeric = numeric.fillna(numeric.mean())
 
-        # Fill missing categorical values
-        categorical = df.select_dtypes(exclude=["number"])
+        # Categorical columns
+        categorical = df.select_dtypes(exclude=["number"]).copy()
         categorical = categorical.fillna("Unknown")
 
-        # One-hot encode categorical columns
-        categorical = pd.get_dummies(categorical)
+        if not categorical.empty:
+            categorical = pd.get_dummies(categorical)
 
-        # Combine both
+        if numeric.empty:
+            return categorical
+
+        if categorical.empty:
+            return numeric
+
         return pd.concat([numeric, categorical], axis=1)
 
     def scale(self, X):

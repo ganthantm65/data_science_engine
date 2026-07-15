@@ -40,7 +40,7 @@ async def train(
     size = 0
 
     with open(filepath, "wb") as buffer:
-        while chunk := file.file.read(1024 * 1024):  # 1 MB chunks
+        while chunk := file.file.read(1024 * 1024):
             size += len(chunk)
 
             if size > MAX_FILE_SIZE:
@@ -54,18 +54,34 @@ async def train(
             buffer.write(chunk)
 
     try:
+
+        # Read CSV with multiple encodings
         try:
             df = pd.read_csv(filepath, encoding="utf-8")
-            print(df.columns.tolist())
-            print(df.head())
-            print(df.columns.tolist())
-            print(df.dtypes)
         except UnicodeDecodeError:
             try:
                 df = pd.read_csv(filepath, encoding="utf-8-sig")
             except UnicodeDecodeError:
                 df = pd.read_csv(filepath, encoding="latin1")
 
+        # Clean column names
+        df.columns = df.columns.str.strip()
+
+        # Debug information
+        print("=" * 60)
+        print("Columns:")
+        print(df.columns.tolist())
+        print()
+
+        print("Data Types:")
+        print(df.dtypes)
+        print()
+
+        print("First 5 Rows:")
+        print(df.head())
+        print("=" * 60)
+
+        # Train
         engine = DSEngine(model, problem_type)
         metrics, plot_path = engine.train(df, target)
 
@@ -79,7 +95,8 @@ async def train(
 
     except Exception as e:
         import traceback
-        traceback.print_exc()   # Prints the full error in Render logs
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=500,
             detail=f"Training failed: {str(e)}"
